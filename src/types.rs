@@ -72,7 +72,7 @@ impl File {
             Some(SiteInfo::FurAffinity(_)) => {
                 format!("https://www.furaffinity.net/view/{}/", self.site_id)
             }
-            Some(SiteInfo::E621(_)) => format!("https://e621.net/post/show/{}", self.site_id),
+            Some(SiteInfo::E621(_)) => format!("https://e621.net/posts/{}", self.site_id),
             _ => unreachable!(),
         }
     }
