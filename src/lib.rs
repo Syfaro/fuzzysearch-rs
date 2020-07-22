@@ -119,49 +119,21 @@ impl FuzzySearch {
 
     #[cfg(feature = "trace")]
     fn trace_headers(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
-        use opentelemetry::api::{trace::span::Span, HttpTextFormat};
-        let mut headers = std::collections::HashMap::new();
+        use opentelemetry::api::HttpTextFormat;
+        use std::convert::TryInto;
+        use tracing_opentelemetry::OpenTelemetrySpanExt;
 
-        let propagator = opentelemetry::api::distributed_context::http_trace_context_propagator::HTTPTraceContextPropagator::new();
+        let context = tracing::Span::current().context();
 
-        let span = tracing::Span::current();
+        let mut carrier = std::collections::HashMap::new();
+        let propagator = opentelemetry::api::B3Propagator::new(true);
+        propagator.inject_context(&context, &mut carrier);
 
-        let context: Option<opentelemetry::api::SpanContext> = span
-            .with_subscriber(|(id, dispatch)| {
-                use tracing_subscriber::registry::LookupSpan;
+        let headers: reqwest::header::HeaderMap = (&carrier)
+            .try_into()
+            .expect("generated headers contained invalid data");
 
-                let sub = match dispatch.downcast_ref::<tracing_subscriber::Registry>() {
-                    Some(sub) => sub,
-                    None => return None,
-                };
-
-                let span = match sub.span(id) {
-                    Some(span) => span,
-                    None => return None,
-                };
-
-                let context = match span.extensions().get::<opentelemetry::global::BoxedSpan>() {
-                    Some(boxed) => boxed.get_context(),
-                    None => return None,
-                };
-
-                tracing::trace!("passing context to fuzzysearch: {:?}", context);
-
-                Some(context)
-            })
-            .flatten();
-
-        if let Some(context) = context {
-            propagator.inject(context, &mut headers);
-        }
-
-        let mut req = req;
-
-        for (header, value) in headers {
-            req = req.header(header, value);
-        }
-
-        req
+        req.headers(headers)
     }
 
     #[cfg(not(feature = "trace"))]
@@ -223,7 +195,7 @@ mod tests {
 
         let images = api
             .image_search(
-                &vec![
+                &[
                     0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49,
                     0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06,
                     0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44,
