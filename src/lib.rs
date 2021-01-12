@@ -73,7 +73,11 @@ impl FuzzySearch {
 
     /// Attempt to lookup multiple hashes.
     #[cfg_attr(feature = "trace", tracing::instrument(skip(self)))]
-    pub async fn lookup_hashes(&self, hashes: Vec<i64>) -> reqwest::Result<Vec<File>> {
+    pub async fn lookup_hashes(
+        &self,
+        hashes: &[i64],
+        distance: Option<i64>,
+    ) -> reqwest::Result<Vec<File>> {
         let mut params = HashMap::new();
         params.insert(
             "hashes",
@@ -83,6 +87,9 @@ impl FuzzySearch {
                 .collect::<Vec<_>>()
                 .join(","),
         );
+        if let Some(distance) = distance {
+            params.insert("distance", distance.to_string());
+        }
 
         self.make_request("/hashes", &params).await
     }
@@ -91,7 +98,12 @@ impl FuzzySearch {
     ///
     /// Requiring an exact match will be faster, but potentially leave out results.
     #[cfg_attr(feature = "trace", tracing::instrument(skip(self, data)))]
-    pub async fn image_search(&self, data: &[u8], exact: MatchType) -> reqwest::Result<Matches> {
+    pub async fn image_search(
+        &self,
+        data: &[u8],
+        exact: MatchType,
+        distance: Option<i64>,
+    ) -> reqwest::Result<Matches> {
         use reqwest::multipart::{Form, Part};
 
         let url = format!("{}/image", Self::API_ENDPOINT);
@@ -99,11 +111,14 @@ impl FuzzySearch {
         let part = Part::bytes(Vec::from(data));
         let form = Form::new().part("image", part);
 
-        let query = match exact {
+        let mut query = match exact {
             MatchType::Exact => vec![("type", "exact".to_string())],
             MatchType::Force => vec![("type", "force".to_string())],
             _ => vec![("type", "close".to_string())],
         };
+        if let Some(distance) = distance {
+            query.push(("distance", distance.to_string()));
+        }
 
         let req = self
             .client
@@ -183,7 +198,6 @@ mod tests {
         let api = get_api();
 
         let no_filenames = api.lookup_filename("nope").await;
-        println!("{:?}", no_filenames);
 
         assert!(no_filenames.is_ok());
         assert_eq!(no_filenames.unwrap().len(), 0);
@@ -204,12 +218,33 @@ mod tests {
                     0x60, 0x82,
                 ],
                 MatchType::Exact,
+                None,
             )
             .await;
 
-        println!("{:?}", images);
-
         assert!(images.is_ok());
         assert_eq!(images.unwrap().matches.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_bad_question_mark() {
+        let api = get_api();
+
+        let hashes = [
+            -2556732020129704400,
+            -2561236014356413000,
+            -2547724682899139000,
+            -2547706523777382000,
+            -2581468986813360600,
+            -2545472262588508700,
+            -3700347395489575400,
+            -7303508297210637000,
+            -5425665582294280000,
+        ];
+
+        let results_dist0 = api.lookup_hashes(&hashes, None).await.unwrap();
+        let results_dist1 = api.lookup_hashes(&hashes, Some(1)).await.unwrap();
+
+        assert_ne!(results_dist0.len(), results_dist1.len());
     }
 }
