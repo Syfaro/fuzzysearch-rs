@@ -7,6 +7,7 @@ mod types;
 
 /// FuzzySearch is a collection of methods to get information from fuzzysearch.net.
 pub struct FuzzySearch {
+    endpoint: String,
     api_key: String,
     client: reqwest::Client,
 }
@@ -22,14 +23,32 @@ pub enum MatchType {
     Force,
 }
 
+pub struct FuzzySearchOpts {
+    pub endpoint: Option<String>,
+    pub client: Option<reqwest::Client>,
+    pub api_key: String,
+}
+
 impl FuzzySearch {
     pub const API_ENDPOINT: &'static str = "https://api.fuzzysearch.net";
 
-    /// Create a new FAUtil instance. Requires the API key.
+    /// Create a new FuzzySearch instance. Requires the API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
             client: reqwest::Client::new(),
+            endpoint: Self::API_ENDPOINT.to_string(),
+        }
+    }
+
+    /// Create a new FuzzySearch instance with a custom client or endpoint.
+    pub fn new_with_opts(opts: FuzzySearchOpts) -> Self {
+        Self {
+            api_key: opts.api_key,
+            client: opts.client.unwrap_or_else(reqwest::Client::new),
+            endpoint: opts
+                .endpoint
+                .unwrap_or_else(|| Self::API_ENDPOINT.to_string()),
         }
     }
 
@@ -40,7 +59,7 @@ impl FuzzySearch {
         endpoint: &str,
         params: &HashMap<&str, String>,
     ) -> reqwest::Result<T> {
-        let url = format!("{}{}", Self::API_ENDPOINT, endpoint);
+        let url = format!("{}{}", self.endpoint, endpoint);
 
         let req = self
             .client
@@ -54,7 +73,7 @@ impl FuzzySearch {
     }
 
     /// Attempt to look up an image by its URL. Note that URLs should be https.
-    #[cfg_attr(feature = "trace", tracing::instrument(skip(self)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
     pub async fn lookup_url(&self, url: &str) -> reqwest::Result<Vec<File>> {
         let mut params = HashMap::new();
         params.insert("url", url.to_string());
@@ -63,7 +82,7 @@ impl FuzzySearch {
     }
 
     /// Attempt to look up an image by its original name on FA.
-    #[cfg_attr(feature = "trace", tracing::instrument(skip(self)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
     pub async fn lookup_filename(&self, filename: &str) -> reqwest::Result<Vec<File>> {
         let mut params = HashMap::new();
         params.insert("name", filename.to_string());
@@ -72,7 +91,7 @@ impl FuzzySearch {
     }
 
     /// Attempt to lookup multiple hashes.
-    #[cfg_attr(feature = "trace", tracing::instrument(skip(self)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
     pub async fn lookup_hashes(
         &self,
         hashes: &[i64],
@@ -97,7 +116,7 @@ impl FuzzySearch {
     /// Attempt to reverse image search.
     ///
     /// Requiring an exact match will be faster, but potentially leave out results.
-    #[cfg_attr(feature = "trace", tracing::instrument(skip(self, data)))]
+    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self, data)))]
     pub async fn image_search(
         &self,
         data: &[u8],
@@ -106,7 +125,7 @@ impl FuzzySearch {
     ) -> reqwest::Result<Matches> {
         use reqwest::multipart::{Form, Part};
 
-        let url = format!("{}/image", Self::API_ENDPOINT);
+        let url = format!("{}/image", self.endpoint);
 
         let part = Part::bytes(Vec::from(data));
         let form = Form::new().part("image", part);
