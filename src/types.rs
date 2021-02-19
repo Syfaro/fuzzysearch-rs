@@ -25,6 +25,14 @@ pub struct E621File {
     pub sources: Option<Vec<String>>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Rating {
+    General,
+    Mature,
+    Adult,
+}
+
 /// Information about a matching image.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct File {
@@ -38,6 +46,8 @@ pub struct File {
     pub filename: String,
     /// Optional list of artists who may have created the image.
     pub artists: Option<Vec<String>>,
+    /// Optional rating of the submission.
+    pub rating: Option<Rating>,
     /// Hash of the image. Only returned in some endpoints.
     pub hash: Option<i64>,
     /// Distance of the image compared to the input. Only returned in some endpoints.
