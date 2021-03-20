@@ -99,6 +99,15 @@ impl FuzzySearch {
         self.make_request("/file", &params).await
     }
 
+    /// Attempt to look up an image by its ID on FA.
+    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
+    pub async fn lookup_id(&self, id: i32) -> reqwest::Result<Vec<File>> {
+        let mut params = HashMap::new();
+        params.insert("site_id", id.to_string());
+
+        self.make_request("/file", &params).await
+    }
+
     /// Attempt to lookup multiple hashes.
     #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
     pub async fn lookup_hashes(
