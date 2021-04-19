@@ -8,6 +8,7 @@ pub enum SiteInfo {
     #[serde(rename = "e621")]
     E621(E621File),
     Twitter,
+    Weasyl,
 }
 
 /// Information about a file from FurAffinity.
@@ -67,6 +68,7 @@ impl File {
             Some(SiteInfo::Twitter) => "Twitter",
             Some(SiteInfo::FurAffinity(_)) => "FurAffinity",
             Some(SiteInfo::E621(_)) => "e621",
+            Some(SiteInfo::Weasyl) => "Weasyl",
             _ => unreachable!(),
         }
     }
@@ -83,6 +85,7 @@ impl File {
                 format!("https://www.furaffinity.net/view/{}/", self.site_id)
             }
             Some(SiteInfo::E621(_)) => format!("https://e621.net/posts/{}", self.site_id),
+            Some(SiteInfo::Weasyl) => format!("https://www.weasyl.com/view/{}/", self.site_id),
             _ => unreachable!(),
         }
     }
