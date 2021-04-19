@@ -37,8 +37,6 @@ pub enum Rating {
 /// Information about a matching image.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct File {
-    /// FuzzySearch-specific identifier. Unique but meaningless.
-    pub id: i32,
     /// The site-specific ID.
     pub site_id: i64,
     /// Direct link to the submission image.
@@ -69,7 +67,7 @@ impl File {
             Some(SiteInfo::FurAffinity(_)) => "FurAffinity",
             Some(SiteInfo::E621(_)) => "e621",
             Some(SiteInfo::Weasyl) => "Weasyl",
-            _ => unreachable!(),
+            _ => unreachable!("Search result was missing SiteInfo"),
         }
     }
 
@@ -86,7 +84,7 @@ impl File {
             }
             Some(SiteInfo::E621(_)) => format!("https://e621.net/posts/{}", self.site_id),
             Some(SiteInfo::Weasyl) => format!("https://www.weasyl.com/view/{}/", self.site_id),
-            _ => unreachable!(),
+            _ => unreachable!("Search result was missing SiteInfo"),
         }
     }
 }
