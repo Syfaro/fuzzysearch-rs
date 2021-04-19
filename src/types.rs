@@ -87,6 +87,11 @@ impl File {
             _ => unreachable!("Search result was missing SiteInfo"),
         }
     }
+
+    /// Generate a unique ID for the submission.
+    pub fn id(&self) -> String {
+        format!("{}-{}", self.site_name(), self.site_id)
+    }
 }
 
 /// Container for multiple matches. Includes the hash of the image sent.
