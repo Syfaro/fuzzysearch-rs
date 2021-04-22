@@ -13,15 +13,16 @@ reqwest = { version = "0.11", features = ["json", "multipart"] }
 
 tracing = { version = "0.1", optional = true }
 tracing-futures = { version = "0.2", optional = true }
-tracing-opentelemetry = { version = "0.5", optional = true }
+tracing-opentelemetry = { version = "0.12", optional = true }
 tracing-subscriber = { version = "0.2", optional = true }
-opentelemetry = { version = "0.6", optional = true }
+opentelemetry = { version = "0.13", optional = true }
+opentelemetry-http = { version = "0.2", optional = true }
 
 img_hash = { version = "3", optional = true }
 image = { version = "0.23", optional = true }
 
 [features]
-trace = ["tracing", "tracing-futures", "tracing-opentelemetry", "opentelemetry", "tracing-subscriber"]
+trace = ["tracing", "tracing-futures", "tracing-opentelemetry", "opentelemetry", "tracing-subscriber", "opentelemetry-http"]
 local_hash = ["img_hash", "image"]
 
 [dev-dependencies]

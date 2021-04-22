@@ -171,19 +171,14 @@ impl FuzzySearch {
 
     #[cfg(feature = "trace")]
     fn trace_headers(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
-        use opentelemetry::api::HttpTextFormat;
-        use std::convert::TryInto;
         use tracing_opentelemetry::OpenTelemetrySpanExt;
 
         let context = tracing::Span::current().context();
 
-        let mut carrier = std::collections::HashMap::new();
-        let propagator = opentelemetry::api::B3Propagator::new(true);
-        propagator.inject_context(&context, &mut carrier);
-
-        let headers: reqwest::header::HeaderMap = (&carrier)
-            .try_into()
-            .expect("generated headers contained invalid data");
+        let mut headers: reqwest::header::HeaderMap = Default::default();
+        opentelemetry::global::get_text_map_propagator(|propagator| {
+            propagator.inject_context(&context, &mut opentelemetry_http::HeaderInjector(&mut headers))
+        });
 
         req.headers(headers)
     }
