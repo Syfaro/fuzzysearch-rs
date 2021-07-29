@@ -177,7 +177,10 @@ impl FuzzySearch {
 
         let mut headers: reqwest::header::HeaderMap = Default::default();
         opentelemetry::global::get_text_map_propagator(|propagator| {
-            propagator.inject_context(&context, &mut opentelemetry_http::HeaderInjector(&mut headers))
+            propagator.inject_context(
+                &context,
+                &mut opentelemetry_http::HeaderInjector(&mut headers),
+            )
         });
 
         req.headers(headers)
