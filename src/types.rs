@@ -47,6 +47,8 @@ pub struct File {
     pub artists: Option<Vec<String>>,
     /// Optional rating of the submission.
     pub rating: Option<Rating>,
+    /// Optional date that the submission was posted.
+    pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
     /// Hash of the image. Only returned in some endpoints.
     pub hash: Option<i64>,
     /// Distance of the image compared to the input. Only returned in some endpoints.
