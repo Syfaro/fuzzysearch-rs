@@ -49,6 +49,11 @@ pub struct File {
     pub rating: Option<Rating>,
     /// Optional date that the submission was posted.
     pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Tags associated with the post, if applicable.
+    pub tags: Option<Vec<String>>,
+    /// SHA256 hash of the associated image, if known.
+    #[serde(with = "opt_hex_u8")]
+    pub sha256: Option<Vec<u8>>,
     /// Hash of the image. Only returned in some endpoints.
     pub hash: Option<i64>,
     /// Distance of the image compared to the input. Only returned in some endpoints.
@@ -59,6 +64,32 @@ pub struct File {
     pub site_info: Option<SiteInfo>,
     /// The hash that retreived this result. Only returned in some endpoints.
     pub searched_hash: Option<i64>,
+}
+
+mod opt_hex_u8 {
+    use serde::Deserialize;
+
+    pub fn serialize<S>(bytes: &Option<Vec<u8>>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match bytes {
+            Some(bytes) => serializer.serialize_str(&hex::encode(bytes)),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Vec<u8>>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let val = <Option<String>>::deserialize(deserializer)?
+            .map(hex::decode)
+            .transpose()
+            .map_err(serde::de::Error::custom)?;
+
+        Ok(val)
+    }
 }
 
 impl File {

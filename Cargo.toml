@@ -2,7 +2,7 @@
 name = "fuzzysearch"
 version = "0.2.0"
 authors = ["Syfaro <syfaro@huefox.com>"]
-edition = "2018"
+edition = "2021"
 description = "An API wrapper for fuzzysearch.net"
 
 [dependencies]
@@ -21,6 +21,8 @@ opentelemetry-http = { version = "0.6", optional = true }
 
 img_hash = { version = "3", optional = true }
 image = { version = "0.23", optional = true }
+
+hex = { version = "0.4", features = ["serde"] }
 
 [features]
 trace = ["tracing", "tracing-futures", "tracing-opentelemetry", "opentelemetry", "tracing-subscriber", "opentelemetry-http"]
