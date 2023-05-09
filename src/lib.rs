@@ -30,7 +30,7 @@ pub struct FuzzySearchOpts {
 }
 
 impl FuzzySearch {
-    pub const API_ENDPOINT: &'static str = "https://api.fuzzysearch.net";
+    pub const API_ENDPOINT: &'static str = "https://api-next.fuzzysearch.net/v1";
 
     /// Create a new FuzzySearch instance. Requires the API key.
     pub fn new(api_key: String) -> Self {
@@ -64,48 +64,12 @@ impl FuzzySearch {
         let req = self
             .client
             .get(&url)
-            .header("X-Api-Key", self.api_key.as_bytes())
+            .header("x-api-key", self.api_key.as_bytes())
             .query(params);
 
         let req = Self::trace_headers(req);
 
         req.send().await?.json().await
-    }
-
-    /// Attempt to look up an image by its URL. Note that URLs should be https.
-    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
-    pub async fn lookup_url(&self, url: &str) -> reqwest::Result<Vec<File>> {
-        let mut params = HashMap::new();
-        params.insert("url", url.to_string());
-
-        self.make_request("/file", &params).await
-    }
-
-    /// Attempt to look up an image by its original name on FA.
-    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
-    pub async fn lookup_filename(&self, filename: &str) -> reqwest::Result<Vec<File>> {
-        let mut params = HashMap::new();
-        params.insert("name", filename.to_string());
-
-        self.make_request("/file", &params).await
-    }
-
-    /// Attempt to look up an image by its file ID on FA.
-    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
-    pub async fn lookup_file_id(&self, file_id: i64) -> reqwest::Result<Vec<File>> {
-        let mut params = HashMap::new();
-        params.insert("id", file_id.to_string());
-
-        self.make_request("/file", &params).await
-    }
-
-    /// Attempt to look up an image by its ID on FA.
-    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
-    pub async fn lookup_id(&self, id: i32) -> reqwest::Result<Vec<File>> {
-        let mut params = HashMap::new();
-        params.insert("site_id", id.to_string());
-
-        self.make_request("/file", &params).await
     }
 
     /// Attempt to lookup multiple hashes.
@@ -117,7 +81,7 @@ impl FuzzySearch {
     ) -> reqwest::Result<Vec<File>> {
         let mut params = HashMap::new();
         params.insert(
-            "hashes",
+            "hash",
             hashes
                 .iter()
                 .map(|hash| hash.to_string())
@@ -131,6 +95,15 @@ impl FuzzySearch {
         self.make_request("/hashes", &params).await
     }
 
+    /// Attempt to perform a search using an image URL.
+    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
+    pub async fn lookup_url(&self, url: &str) -> reqwest::Result<Vec<File>> {
+        let mut params = HashMap::new();
+        params.insert("url", url.to_string());
+
+        self.make_request("/url", &params).await
+    }
+
     /// Attempt to reverse image search.
     ///
     /// Requiring an exact match will be faster, but potentially leave out results.
@@ -140,7 +113,7 @@ impl FuzzySearch {
         data: &[u8],
         exact: MatchType,
         distance: Option<i64>,
-    ) -> reqwest::Result<Matches> {
+    ) -> reqwest::Result<Vec<File>> {
         use reqwest::multipart::{Form, Part};
 
         let url = format!("{}/image", self.endpoint);
@@ -161,7 +134,7 @@ impl FuzzySearch {
             .client
             .post(&url)
             .query(&query)
-            .header("X-Api-Key", self.api_key.as_bytes())
+            .header("x-api-key", self.api_key.as_bytes())
             .multipart(form);
 
         let req = Self::trace_headers(req);
@@ -229,17 +202,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_lookup() {
-        let api = get_api();
-
-        let no_filenames = api.lookup_filename("nope").await;
-
-        assert!(no_filenames.is_ok());
-        assert_eq!(no_filenames.unwrap().len(), 0);
-    }
-
-    #[tokio::test]
-    async fn test_image() {
+    async fn test_image_search() {
         let api = get_api();
 
         let images = api
@@ -258,28 +221,30 @@ mod tests {
             .await;
 
         assert!(images.is_ok());
-        assert!(images.unwrap().matches.len() > 0);
+        assert!(images.unwrap().len() > 0);
     }
 
     #[tokio::test]
-    async fn test_bad_question_mark() {
+    async fn test_lookup_hashes() {
         let api = get_api();
 
-        let hashes = [
-            -2556732020129704400,
-            -2561236014356413000,
-            -2547724682899139000,
-            -2547706523777382000,
-            -2581468986813360600,
-            -2545472262588508700,
-            -3700347395489575400,
-            -7303508297210637000,
-            -5425665582294280000,
-        ];
+        let images = api.lookup_hashes(&[6072371633344665261], None).await;
 
-        let results_dist0 = api.lookup_hashes(&hashes, None).await.unwrap();
-        let results_dist1 = api.lookup_hashes(&hashes, Some(1)).await.unwrap();
+        assert!(images.is_ok());
+        assert!(images.unwrap().len() > 0);
+    }
 
-        assert_ne!(results_dist0.len(), results_dist1.len());
+    #[tokio::test]
+    async fn test_lookup_url() {
+        let api = get_api();
+
+        let images = api
+            .lookup_url(
+                "https://d.facdn.net/art/oce/1467485464/1467485464.oce_syfaro-sketch-web.jpg",
+            )
+            .await;
+
+        assert!(images.is_ok());
+        assert!(images.unwrap().len() > 0);
     }
 }
