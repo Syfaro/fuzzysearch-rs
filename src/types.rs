@@ -127,6 +127,26 @@ impl File {
     }
 }
 
+/// Information about a matching FurAffinity file.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FurAffinityFileDetail {
+    pub artist: Option<String>,
+    pub deleted: bool,
+    pub file_id: Option<i32>,
+    pub file_size: Option<i32>,
+    pub filename: Option<String>,
+    pub hash: Option<i64>,
+    pub hash_str: Option<String>,
+    pub id: i32,
+    pub posted_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub rating: Option<Rating>,
+    #[serde(with = "opt_hex_u8")]
+    pub sha256: Option<Vec<u8>>,
+    pub tags: Vec<String>,
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub url: Option<String>,
+}
+
 /// Container for multiple matches. Includes the hash of the image sent.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Matches {

@@ -45,7 +45,7 @@ impl FuzzySearch {
     pub fn new_with_opts(opts: FuzzySearchOpts) -> Self {
         Self {
             api_key: opts.api_key,
-            client: opts.client.unwrap_or_else(reqwest::Client::new),
+            client: opts.client.unwrap_or_default(),
             endpoint: opts
                 .endpoint
                 .unwrap_or_else(|| Self::API_ENDPOINT.to_string()),
@@ -140,6 +140,18 @@ impl FuzzySearch {
         let req = Self::trace_headers(req);
 
         req.send().await?.json().await
+    }
+
+    /// Attempt to resolve some information from a FurAffinity file.
+    #[cfg_attr(feature = "trace", tracing::instrument(err, skip(self)))]
+    pub async fn lookup_furaffinity_file(
+        &self,
+        url: &str,
+    ) -> reqwest::Result<Vec<FurAffinityFileDetail>> {
+        let mut params = HashMap::new();
+        params.insert("search", url.to_string());
+
+        self.make_request("/file/furaffinity", &params).await
     }
 
     #[cfg(feature = "trace")]
@@ -240,6 +252,20 @@ mod tests {
 
         let images = api
             .lookup_url(
+                "https://d.facdn.net/art/oce/1467485464/1467485464.oce_syfaro-sketch-web.jpg",
+            )
+            .await;
+
+        assert!(images.is_ok());
+        assert!(images.unwrap().len() > 0);
+    }
+
+    #[tokio::test]
+    async fn test_lookup_furaffinity_file() {
+        let api = get_api();
+
+        let images = api
+            .lookup_furaffinity_file(
                 "https://d.facdn.net/art/oce/1467485464/1467485464.oce_syfaro-sketch-web.jpg",
             )
             .await;
